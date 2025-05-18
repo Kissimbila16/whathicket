@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'src/login/login.dart';     // Tela de login
+import 'src/home/home.dart';     // Tela de login
 
 void main() {
   runApp(const MyApp());
@@ -14,7 +15,8 @@ class MyApp extends StatelessWidget {
       title: 'Exemplo de Rotas',
       initialRoute: '/', // Rota inicial
       routes: {
-        '/': (context) => const LoginPage(),
+        '/': (context) => const HomePage(),
+        '/login': (context) => const LoginPage(),
       },
     );
   }
