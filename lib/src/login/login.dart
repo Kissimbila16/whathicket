@@ -8,14 +8,11 @@ class LoginPage extends StatefulWidget {
 }
 
 class LoginPageState extends State<LoginPage> {
-  // Chave global para identificar o formulário e permitir a validação.
   final _formKey = GlobalKey<FormState>();
 
-  // Controladores para os campos de texto
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
-  // Foco para os campos de texto (melhora a experiência do usuário)
   final FocusNode _emailFocusNode = FocusNode();
   final FocusNode _passwordFocusNode = FocusNode();
   final FocusNode _loginButtonFocusNode = FocusNode(); // Para focar no botão após a senha
@@ -25,7 +22,6 @@ class LoginPageState extends State<LoginPage> {
 
   @override
   void dispose() {
-    // Limpar os controladores e focus nodes quando o widget for descartado
     _emailController.dispose();
     _passwordController.dispose();
     _emailFocusNode.dispose();
@@ -35,24 +31,18 @@ class LoginPageState extends State<LoginPage> {
   }
 
   Future<void> _login() async {
-    // Esconder o teclado
     FocusScope.of(context).unfocus();
 
-    // Validar o formulário
     if (_formKey.currentState?.validate() ?? false) {
       setState(() {
         _isLoading = true; // Inicia o indicador de carregamento
       });
 
-      // Simulação de uma chamada de API/autenticação
       await Future.delayed(const Duration(seconds: 2));
 
-      // Aqui você implementaria sua lógica de autenticação real.
-      // Por exemplo, verificar se _emailController.text e _passwordController.text são válidos.
-      final email = _emailController.text;
+     final email = _emailController.text;
       final password = _passwordController.text;
 
-      // Exemplo de verificação simples (substitua pela sua lógica)
       if (email == 'teste@exemplo.com' && password == 'senha123') {
         if (mounted) { // Verifica se o widget ainda está na árvore de widgets
           ScaffoldMessenger.of(context).showSnackBar(
@@ -61,11 +51,7 @@ class LoginPageState extends State<LoginPage> {
               backgroundColor: Colors.green,
             ),
           );
-          // Navegar para a próxima página (ex: HomePage)
-          // Navigator.pushReplacementNamed(context, '/home');
-          // Por agora, vamos apenas voltar como no seu exemplo original,
-          // mas idealmente você navegaria para uma tela principal.
-          Navigator.pop(context); // Ou navegue para a tela principal
+    Navigator.pop(context); // Ou navegue para a tela principal
         }
       } else {
         if (mounted) {
@@ -89,14 +75,6 @@ class LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Login'),
-        // Se você quiser um botão de voltar explícito na AppBar:
-        // leading: IconButton(
-        //   icon: const Icon(Icons.arrow_back),
-        //   onPressed: () => Navigator.pop(context),
-        // ),
-      ),
       body: Center(
         child: SingleChildScrollView( // Permite rolagem se o conteúdo for maior que a tela
           padding: const EdgeInsets.all(24.0),
@@ -108,7 +86,7 @@ class LoginPageState extends State<LoginPage> {
               children: <Widget>[
                 // Logo ou Título (opcional)
                 Text(
-                  'Bem-vindo!',
+                  'WhaTicket!',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 28,
@@ -116,7 +94,7 @@ class LoginPageState extends State<LoginPage> {
                     color: Theme.of(context).primaryColor,
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 5),
                 Text(
                   'Faça login para continuar',
                   textAlign: TextAlign.center,
@@ -125,7 +103,7 @@ class LoginPageState extends State<LoginPage> {
                     color: Colors.grey[700],
                   ),
                 ),
-                const SizedBox(height: 40.0),
+                const SizedBox(height: 30.0),
 
                 // Campo de Email
                 TextFormField(
@@ -197,22 +175,7 @@ class LoginPageState extends State<LoginPage> {
                     return null;
                   },
                 ),
-                const SizedBox(height: 8.0),
-
-                // Link "Esqueci minha senha" (opcional)
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton(
-                    onPressed: () {
-                      // Lógica para "Esqueci minha senha"
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Funcionalidade "Esqueci minha senha" a ser implementada.')),
-                      );
-                    },
-                    child: const Text('Esqueceu a senha?'),
-                  ),
-                ),
-                const SizedBox(height: 24.0),
+                const SizedBox(height: 16.0),
 
                 // Botão de Login
                 _isLoading
@@ -224,11 +187,11 @@ class LoginPageState extends State<LoginPage> {
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8.0),
                           ),
-                          // backgroundColor: Theme.of(context).primaryColor, // Cor de fundo
-                          // foregroundColor: Colors.white, // Cor do texto e ícone
+                          backgroundColor: Theme.of(context).primaryColor, // Cor de fundo
+                          foregroundColor: Colors.white, // Cor do texto e ícone
                         ),
                         onPressed: _login,
-                        child: const Text('LOGIN', style: TextStyle(fontSize: 16)),
+                        child: const Text('Entrar', style: TextStyle(fontSize: 16)),
                       ),
                 const SizedBox(height: 16.0),
 
@@ -249,15 +212,6 @@ class LoginPageState extends State<LoginPage> {
                     ),
                   ],
                 ),
-
-                // Botão de Voltar (como no seu exemplo original, se ainda necessário)
-                // Se a navegação para login for feita com push, a AppBar já terá o botão de voltar.
-                // Se não, você pode adicionar um botão explícito:
-                // const SizedBox(height: 20),
-                // TextButton(
-                //   onPressed: () => Navigator.pop(context),
-                //   child: const Text('Voltar para a tela anterior'),
-                // ),
               ],
             ),
           ),
