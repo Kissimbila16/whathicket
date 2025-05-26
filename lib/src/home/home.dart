@@ -31,15 +31,15 @@ class HomePage extends StatelessWidget {
               ElevatedButton(
                 onPressed: () => Navigator.pushNamed(context, '/login'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blueAccent, // Cor de fundo do botão
-                  foregroundColor: Colors.white, // Cor do texto do botão
+                  // backgroundColor: Colors.blueAccent, // Cor de fundo do botão
+                  foregroundColor: Colors.black, // Cor do texto do botão
                   padding: const EdgeInsets.symmetric(horizontal: 40.0, vertical: 16.0),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8.0), // Bordas arredondadas
                   ),
                   textStyle: const TextStyle(fontSize: 18.0),
                 ),
-                child: const Text('Ir para Login'),
+                child: const Text('Entrar'),
               ),
               const SizedBox(height: 20.0),
               // Você pode adicionar mais widgets aqui, como um logo ou uma imagem

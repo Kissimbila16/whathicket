@@ -15,7 +15,8 @@ class LoginPageState extends State<LoginPage> {
 
   final FocusNode _emailFocusNode = FocusNode();
   final FocusNode _passwordFocusNode = FocusNode();
-  final FocusNode _loginButtonFocusNode = FocusNode(); // Para focar no botão após a senha
+  final FocusNode _loginButtonFocusNode =
+      FocusNode(); // Para focar no botão após a senha
 
   bool _isPasswordVisible = false;
   bool _isLoading = false; // Para feedback visual durante o login
@@ -40,30 +41,21 @@ class LoginPageState extends State<LoginPage> {
 
       await Future.delayed(const Duration(seconds: 2));
 
-     final email = _emailController.text;
+      final email = _emailController.text;
       final password = _passwordController.text;
 
-      if (email == 'teste@exemplo.com' && password == 'senha123') {
-        if (mounted) { // Verifica se o widget ainda está na árvore de widgets
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Login bem-sucedido!'),
-              backgroundColor: Colors.green,
-            ),
-          );
-    Navigator.pop(context); // Ou navegue para a tela principal
-        }
-      } else {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Email ou senha inválidos.'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
+      // if (email == 'teste@exemplo.com' && password == 'senha123') {
+      if (mounted) {
+        // Verifica se o widget ainda está na árvore de widgets
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Login bem-sucedido!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        Navigator.pushNamed(context, '/home');
       }
-
+    
       if (mounted) {
         setState(() {
           _isLoading = false; // Termina o indicador de carregamento
@@ -76,7 +68,8 @@ class LoginPageState extends State<LoginPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Center(
-        child: SingleChildScrollView( // Permite rolagem se o conteúdo for maior que a tela
+        child: SingleChildScrollView(
+          // Permite rolagem se o conteúdo for maior que a tela
           padding: const EdgeInsets.all(24.0),
           child: Form(
             key: _formKey,
@@ -98,10 +91,7 @@ class LoginPageState extends State<LoginPage> {
                 Text(
                   'Faça login para continuar',
                   textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.grey[700],
-                  ),
+                  style: TextStyle(fontSize: 16, color: Colors.grey[700]),
                 ),
                 const SizedBox(height: 30.0),
 
@@ -118,7 +108,8 @@ class LoginPageState extends State<LoginPage> {
                     ),
                   ),
                   keyboardType: TextInputType.emailAddress,
-                  textInputAction: TextInputAction.next, // Move para o próximo campo
+                  textInputAction:
+                      TextInputAction.next, // Move para o próximo campo
                   onFieldSubmitted: (_) {
                     // Muda o foco para o campo de senha
                     FocusScope.of(context).requestFocus(_passwordFocusNode);
@@ -128,7 +119,9 @@ class LoginPageState extends State<LoginPage> {
                       return 'Por favor, insira seu email.';
                     }
                     // Validação simples de email
-                    if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
+                    if (!RegExp(
+                      r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+                    ).hasMatch(value)) {
                       return 'Por favor, insira um email válido.';
                     }
                     return null;
@@ -149,7 +142,9 @@ class LoginPageState extends State<LoginPage> {
                     ),
                     suffixIcon: IconButton(
                       icon: Icon(
-                        _isPasswordVisible ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                        _isPasswordVisible
+                            ? Icons.visibility_off_outlined
+                            : Icons.visibility_outlined,
                       ),
                       onPressed: () {
                         setState(() {
@@ -159,9 +154,11 @@ class LoginPageState extends State<LoginPage> {
                     ),
                   ),
                   obscureText: !_isPasswordVisible,
-                  textInputAction: TextInputAction.done, // Indica que a entrada está concluída
+                  textInputAction:
+                      TextInputAction
+                          .done, // Indica que a entrada está concluída
                   onFieldSubmitted: (_) {
-                     // Tenta fazer login ou foca no botão de login
+                    // Tenta fazer login ou foca no botão de login
                     FocusScope.of(context).requestFocus(_loginButtonFocusNode);
                     if (!_isLoading) _login();
                   },
@@ -181,18 +178,22 @@ class LoginPageState extends State<LoginPage> {
                 _isLoading
                     ? const Center(child: CircularProgressIndicator())
                     : ElevatedButton(
-                        focusNode: _loginButtonFocusNode,
-                        style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 16.0),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8.0),
-                          ),
-                          backgroundColor: Theme.of(context).primaryColor, // Cor de fundo
-                          foregroundColor: Colors.white, // Cor do texto e ícone
+                      focusNode: _loginButtonFocusNode,
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16.0),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8.0),
                         ),
-                        onPressed: _login,
-                        child: const Text('Entrar', style: TextStyle(fontSize: 16)),
+                        backgroundColor:
+                            Theme.of(context).primaryColor, // Cor de fundo
+                        foregroundColor: Colors.white, // Cor do texto e ícone
                       ),
+                      onPressed: _login,
+                      child: const Text(
+                        'Entrar',
+                        style: TextStyle(fontSize: 16),
+                      ),
+                    ),
                 const SizedBox(height: 16.0),
 
                 // Opção de criar conta (opcional)
@@ -204,29 +205,34 @@ class LoginPageState extends State<LoginPage> {
                       onPressed: () {
                         // Navegar para a página de registro
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Navegar para a página de registro.')),
+                          const SnackBar(
+                            content: Text('Navegar para a página de registro.'),
+                          ),
                         );
                         // Ex: Navigator.pushNamed(context, '/register');
                       },
                       child: const Text('Crie uma aqui'),
                     ),
-                    
                   ],
-                  
                 ),
-                       ElevatedButton(
-                onPressed: () => Navigator.pushNamed(context, '/'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blueAccent, // Cor de fundo do botão
-                  foregroundColor: Colors.white, // Cor do texto do botão
-                  padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10.0),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8.0), // Bordas arredondadas
+                ElevatedButton(
+                  onPressed: () => Navigator.pushNamed(context, '/'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blueAccent, // Cor de fundo do botão
+                    foregroundColor: Colors.white, // Cor do texto do botão
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20.0,
+                      vertical: 10.0,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(
+                        8.0,
+                      ), // Bordas arredondadas
+                    ),
+                    textStyle: const TextStyle(fontSize: 18.0),
                   ),
-                  textStyle: const TextStyle(fontSize: 18.0),
+                  child: const Text('Voltar'),
                 ),
-                child: const Text('Voltar'),
-              ),
               ],
             ),
           ),
