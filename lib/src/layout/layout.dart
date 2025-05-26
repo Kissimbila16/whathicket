@@ -48,7 +48,7 @@ class LayoutPage extends StatelessWidget {
               title: const Text('Profile'),
               onTap: () {
                 Navigator.pop(context);
-                Navigator.pushNamed(context, '/profile');
+                Navigator.pushNamed(context, '/perfil');
               },
             ),
             ListTile(
@@ -70,7 +70,7 @@ class LayoutPage extends StatelessWidget {
           ],
         ),
       ),
-      body: const Center(child: Text('Conteúdo da Home Page')),
+      body: const Center(child: Text('Pagina inicial')),
     );
   }
 }
