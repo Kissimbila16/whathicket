@@ -40,7 +40,7 @@ class LayoutPage extends StatelessWidget {
               title: const Text('Home'),
               onTap: () {
                 Navigator.pop(context); // Fecha o Drawer antes de navegar
-                Navigator.pushNamed(context, '/');
+                Navigator.pushNamed(context, '/home');
               },
             ),
             ListTile(
@@ -71,30 +71,6 @@ class LayoutPage extends StatelessWidget {
         ),
       ),
       body: const Center(child: Text('Pagina inicial')),
-    );
-  }
-}
-
-class ProfilePage extends StatelessWidget {
-  const ProfilePage({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Profile Page')),
-      body: const Center(child: Text('Conteúdo da Profile Page')),
-    );
-  }
-}
-
-class SettingsPage extends StatelessWidget {
-  const SettingsPage({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Settings Page')),
-      body: const Center(child: Text('Conteúdo da Settings Page')),
     );
   }
 }

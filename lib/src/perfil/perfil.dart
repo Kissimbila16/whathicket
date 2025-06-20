@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 class PerfilPage extends StatelessWidget {
-  const PerfilPage({Key? key}) : super(key: key);
+  const PerfilPage({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -9,17 +9,6 @@ class PerfilPage extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Perfil do Usuário'),
         centerTitle: true,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.edit),
-            onPressed: () {
-              // Ação para editar o perfil
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Editar Perfil clicado!')),
-              );
-            },
-          ),
-        ],
       ),
       body: SingleChildScrollView( // Permite rolagem se o conteúdo for muito grande
         child: Padding(
@@ -46,16 +35,6 @@ class PerfilPage extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 10),
-
-              // Ocupação/Título
-              const Text(
-                'Desenvolvedor Flutter | Entusiasta de UI/UX',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.grey,
-                ),
-              ),
-              const SizedBox(height: 20),
 
               // Informações de Contato
               Card(
@@ -91,12 +70,10 @@ class PerfilPage extends StatelessWidget {
               // Botão de Ação (Ex: Configurações)
               ElevatedButton.icon(
                 onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Configurações clicado!')),
-                  );
+                        Navigator.pushNamed(context, '/home');
                 },
-                icon: const Icon(Icons.settings),
-                label: const Text('Configurações do Perfil'),
+                icon: const Icon(Icons.arrow_back_ios_new_outlined),
+                label: const Text('Voltar na pagina'),
                 style: ElevatedButton.styleFrom(
                   minimumSize: const Size(double.infinity, 50), // Botão de largura total
                   shape: RoundedRectangleBorder(

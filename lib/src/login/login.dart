@@ -215,24 +215,6 @@ class LoginPageState extends State<LoginPage> {
                     ),
                   ],
                 ),
-                ElevatedButton(
-                  onPressed: () => Navigator.pushNamed(context, '/'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blueAccent, // Cor de fundo do botão
-                    foregroundColor: Colors.white, // Cor do texto do botão
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20.0,
-                      vertical: 10.0,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(
-                        8.0,
-                      ), // Bordas arredondadas
-                    ),
-                    textStyle: const TextStyle(fontSize: 18.0),
-                  ),
-                  child: const Text('Voltar'),
-                ),
               ],
             ),
           ),
