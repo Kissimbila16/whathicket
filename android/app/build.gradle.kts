@@ -8,11 +8,12 @@ plugins {
 android {
     namespace = "com.example.myapp"
     compileSdk = flutter.compileSdkVersion
-    ndkVersion = flutter.ndkVersion
+    ndkVersion = "27.0.12077973"
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
+         isCoreLibraryDesugaringEnabled = true
     }
 
     kotlinOptions {
@@ -38,6 +39,16 @@ android {
         }
     }
 }
+
+dependencies {
+    // Outras dependências
+
+    implementation("androidx.core:core-ktx:1.13.1")
+
+    // AQUI É FUNDAMENTAL
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
+}
+
 
 flutter {
     source = "../.."

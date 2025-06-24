@@ -1,20 +1,41 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'package:timezone/data/latest_all.dart'; // <-- REMOVED 'as tz_data'
-import 'package:timezone/timezone.dart' as tz;
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
-// Importa suas páginas
-import 'src/login/login.dart';
-import 'src/home/home.dart';
-import 'src/layout/layout.dart';
-import 'src/perfil/perfil.dart';
-import 'src/groups/groups.dart';
-
-
+final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+    FlutterLocalNotificationsPlugin();
 
 void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
 
-  runApp(const MyApp());
+  const AndroidInitializationSettings initializationSettingsAndroid =
+      AndroidInitializationSettings('@mipmap/ic_launcher');
+
+  const InitializationSettings initializationSettings = InitializationSettings(
+    android: initializationSettingsAndroid,
+  );
+
+  await flutterLocalNotificationsPlugin.initialize(initializationSettings);
+
+  runApp(MyApp());
+}
+
+void mostrarNotificacao() async {
+  const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
+    'canal_id',
+    'Canal Nome',
+    importance: Importance.high,
+    priority: Priority.high,
+  );
+
+  const NotificationDetails notificationDetails =
+      NotificationDetails(android: androidDetails);
+
+  await flutterLocalNotificationsPlugin.show(
+    0,
+    'Título da Notificação',
+    'Corpo da Notificação',
+    notificationDetails,
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -23,19 +44,18 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Main App',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-        visualDensity: VisualDensity.adaptivePlatformDensity,
+      title: 'Notificação Local',
+      home: Scaffold(
+        appBar: AppBar(title: Text('Teste de Notificação')),
+        body: Center(
+          child: ElevatedButton(
+            onPressed: () {
+              mostrarNotificacao();
+            },
+            child: Text('Mostrar Notificação'),
+          ),
+        ),
       ),
-      initialRoute: '/',
-      routes: {
-        '/': (context) => const HomePage(),
-        '/login': (context) => const LoginPage(),
-        '/home': (context) => const LayoutPage(),
-        '/perfil': (context) => const PerfilPage(),
-        '/groups': (context) => const GroupsPage(),
-      },
     );
   }
 }
