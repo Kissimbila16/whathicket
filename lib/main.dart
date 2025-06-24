@@ -16,8 +16,26 @@ void main() async {
 
   await flutterLocalNotificationsPlugin.initialize(initializationSettings);
 
-  runApp(MyApp());
+  final android = flutterLocalNotificationsPlugin
+      .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+
+  // Permissão no Android 13+
+  final granted = await android?.requestNotificationsPermission();
+  print("Permissão concedida? $granted");
+
+  // Criar canal
+  const AndroidNotificationChannel channel = AndroidNotificationChannel(
+    'canal_id',
+    'Canal Nome',
+    description: 'Canal de teste',
+    importance: Importance.high,
+  );
+
+  await android?.createNotificationChannel(channel);
+
+  runApp(const MyApp());
 }
+
 
 void mostrarNotificacao() async {
   const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
@@ -46,13 +64,13 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Notificação Local',
       home: Scaffold(
-        appBar: AppBar(title: Text('Teste de Notificação')),
+        appBar: AppBar(title: const Text('Teste de Notificação')),
         body: Center(
           child: ElevatedButton(
             onPressed: () {
               mostrarNotificacao();
             },
-            child: Text('Mostrar Notificação'),
+            child: const Text('Mostrar Notificação'),
           ),
         ),
       ),

@@ -43,10 +43,10 @@ class PerfilPage extends StatelessWidget {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: Padding(
-                  padding: const EdgeInsets.all(15.0),
+                child: const Padding(
+                  padding: EdgeInsets.all(15.0),
                   child: Column(
-                    children: const <Widget>[
+                    children: <Widget>[
                       ListTile(
                         leading: Icon(Icons.email, color: Colors.blue),
                         title: Text('joao.silva@example.com'),
