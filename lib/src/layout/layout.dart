@@ -52,14 +52,6 @@ class LayoutPage extends StatelessWidget {
               },
             ),
             ListTile(
-              leading: const Icon(Icons.group),
-              title: const Text('Grupos'),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.pushNamed(context, '/group');
-              },
-            ),
-            ListTile(
               leading: const Icon(Icons.logout),
               title: const Text('Sair'),
               onTap: () {

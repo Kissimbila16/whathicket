@@ -16,6 +16,8 @@ dependencies:
   onesignal_flutter: ^5.0.0
   firebase_core: ^2.30.0 # Verifique a versão mais recente em pub.dev
   flutter_local_notifications: ^17.0.0
+  http: ^0.13.6
+  shared_preferences: ^2.2.2
 
 dev_dependencies:
   flutter_test:

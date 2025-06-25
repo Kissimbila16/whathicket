@@ -1,0 +1,20 @@
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Notificação Local',
+      home: Scaffold(
+        appBar: AppBar(title: const Text('Teste de Notificação')),
+        body: Center(
+          child: ElevatedButton(
+            onPressed: () {
+              NotificacaoService().mostrarNotificacao(
+                id: DateTime.now().millisecondsSinceEpoch % 1000000,
+                titulo: 'Título da Notificação',
+                corpo: 'Corpo da Notificação',
+              );
+            },
+            child: const Text('Mostrar Notificação'),
+          ),
+        ),
+      ),
+    );
+  }
