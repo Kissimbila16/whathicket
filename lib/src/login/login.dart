@@ -1,4 +1,7 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:http/http.dart' as http;
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -15,11 +18,93 @@ class LoginPageState extends State<LoginPage> {
 
   final FocusNode _emailFocusNode = FocusNode();
   final FocusNode _passwordFocusNode = FocusNode();
-  final FocusNode _loginButtonFocusNode =
-      FocusNode(); // Para focar no botão após a senha
+  final FocusNode _loginButtonFocusNode = FocusNode();
 
   bool _isPasswordVisible = false;
-  bool _isLoading = false; // Para feedback visual durante o login
+  bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkLoginStatus();
+  }
+
+  Future<void> _checkLoginStatus() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedEmail = prefs.getString('userEmail'); // corrigido
+    final loginTimestamp = prefs.getInt('loginTimestamp');
+
+    if (savedEmail != null && loginTimestamp != null) {
+      final lastLogin = DateTime.fromMillisecondsSinceEpoch(loginTimestamp);
+      final now = DateTime.now();
+
+      if (now.difference(lastLogin).inDays <= 20) {
+        if (mounted) {
+          Navigator.pushReplacementNamed(context, '/home');
+        }
+      }
+    }
+  }
+
+  Future<void> _login() async {
+    FocusScope.of(context).unfocus();
+
+    if (_formKey.currentState?.validate() ?? false) {
+      setState(() => _isLoading = true);
+
+      final email = _emailController.text;
+      final password = _passwordController.text;
+
+      try {
+        final response = await http.post(
+          Uri.parse('https://api.restbot.shop/auth/login'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({'email': email, 'password': password}),
+        );
+
+        if (response.statusCode == 200) {
+          final data = jsonDecode(response.body);
+
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('token', data['token']);
+          await prefs.setInt('loginTimestamp', DateTime.now().millisecondsSinceEpoch);
+
+          final user = data['user'];
+          await prefs.setInt('userId', user['id']);
+          await prefs.setString('userName', user['name']);
+          await prefs.setString('userEmail', user['email']);
+          await prefs.setString('profile', user['profile']);
+
+          final company = user['company'];
+          if (company != null) {
+            await prefs.setInt('companyId', company['id']);
+            await prefs.setString('companyName', company['name']);
+          }
+
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Login bem-sucedido!'), backgroundColor: Colors.green),
+            );
+            Navigator.pushReplacementNamed(context, '/home');
+          }
+        } else {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Erro: ${response.body}'), backgroundColor: Colors.red),
+            );
+          }
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Erro ao conectar: $e'), backgroundColor: Colors.red),
+          );
+        }
+      } finally {
+        if (mounted) setState(() => _isLoading = false);
+      }
+    }
+  }
 
   @override
   void dispose() {
@@ -31,45 +116,11 @@ class LoginPageState extends State<LoginPage> {
     super.dispose();
   }
 
-  Future<void> _login() async {
-    FocusScope.of(context).unfocus();
-
-    if (_formKey.currentState?.validate() ?? false) {
-      setState(() {
-        _isLoading = true; // Inicia o indicador de carregamento
-      });
-
-      await Future.delayed(const Duration(seconds: 2));
-
-      final email = _emailController.text;
-      final password = _passwordController.text;
-
-      // if (email == 'teste@exemplo.com' && password == 'senha123') {
-      if (mounted) {
-        // Verifica se o widget ainda está na árvore de widgets
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Login bem-sucedido!'),
-            backgroundColor: Colors.green,
-          ),
-        );
-        Navigator.pushNamed(context, '/home');
-      }
-    
-      if (mounted) {
-        setState(() {
-          _isLoading = false; // Termina o indicador de carregamento
-        });
-      }
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Center(
         child: SingleChildScrollView(
-          // Permite rolagem se o conteúdo for maior que a tela
           padding: const EdgeInsets.all(24.0),
           child: Form(
             key: _formKey,
@@ -77,7 +128,6 @@ class LoginPageState extends State<LoginPage> {
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: <Widget>[
-                // Logo ou Título (opcional)
                 Text(
                   'WhaTicket!',
                   textAlign: TextAlign.center,
@@ -108,20 +158,16 @@ class LoginPageState extends State<LoginPage> {
                     ),
                   ),
                   keyboardType: TextInputType.emailAddress,
-                  textInputAction:
-                      TextInputAction.next, // Move para o próximo campo
+                  textInputAction: TextInputAction.next,
                   onFieldSubmitted: (_) {
-                    // Muda o foco para o campo de senha
                     FocusScope.of(context).requestFocus(_passwordFocusNode);
                   },
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Por favor, insira seu email.';
                     }
-                    // Validação simples de email
-                    if (!RegExp(
-                      r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
-                    ).hasMatch(value)) {
+                    if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
+                        .hasMatch(value)) {
                       return 'Por favor, insira um email válido.';
                     }
                     return null;
@@ -154,12 +200,10 @@ class LoginPageState extends State<LoginPage> {
                     ),
                   ),
                   obscureText: !_isPasswordVisible,
-                  textInputAction:
-                      TextInputAction
-                          .done, // Indica que a entrada está concluída
+                  textInputAction: TextInputAction.done,
                   onFieldSubmitted: (_) {
-                    // Tenta fazer login ou foca no botão de login
-                    FocusScope.of(context).requestFocus(_loginButtonFocusNode);
+                    FocusScope.of(context)
+                        .requestFocus(_loginButtonFocusNode);
                     if (!_isLoading) _login();
                   },
                   validator: (value) {
@@ -178,38 +222,35 @@ class LoginPageState extends State<LoginPage> {
                 _isLoading
                     ? const Center(child: CircularProgressIndicator())
                     : ElevatedButton(
-                      focusNode: _loginButtonFocusNode,
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16.0),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8.0),
+                        focusNode: _loginButtonFocusNode,
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 16.0),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8.0),
+                          ),
+                          backgroundColor: Theme.of(context).primaryColor,
+                          foregroundColor: Colors.white,
                         ),
-                        backgroundColor:
-                            Theme.of(context).primaryColor, // Cor de fundo
-                        foregroundColor: Colors.white, // Cor do texto e ícone
+                        onPressed: _login,
+                        child: const Text(
+                          'Entrar',
+                          style: TextStyle(fontSize: 16),
+                        ),
                       ),
-                      onPressed: _login,
-                      child: const Text(
-                        'Entrar',
-                        style: TextStyle(fontSize: 16),
-                      ),
-                    ),
                 const SizedBox(height: 16.0),
 
-                // Opção de criar conta (opcional)
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     const Text("Não tem uma conta?"),
                     TextButton(
                       onPressed: () {
-                        // Navegar para a página de registro
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
-                            content: Text('Navegar para a página de registro.'),
+                            content:
+                                Text('Navegar para a página de registro.'),
                           ),
                         );
-                        // Ex: Navigator.pushNamed(context, '/register');
                       },
                       child: const Text('Crie uma aqui'),
                     ),

@@ -1,7 +1,34 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-class PerfilPage extends StatelessWidget {
+class PerfilPage extends StatefulWidget {
   const PerfilPage({super.key});
+
+  @override
+  State<PerfilPage> createState() => _PerfilPageState();
+}
+
+class _PerfilPageState extends State<PerfilPage> {
+  String? name;
+  String? email;
+  String? companyName;
+  String? profile;
+
+  @override
+  void initState() {
+    super.initState();
+    _carregarDadosUsuario();
+  }
+
+  Future<void> _carregarDadosUsuario() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      name = prefs.getString('userName') ?? 'Nome não disponível';
+      email = prefs.getString('userEmail') ?? 'Email não disponível';
+      companyName = prefs.getString('companyName') ?? 'Empresa não disponível';
+      profile = prefs.getString('profile') ?? 'Perfil não disponível';
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -10,79 +37,72 @@ class PerfilPage extends StatelessWidget {
         title: const Text('Perfil do Usuário'),
         centerTitle: true,
       ),
-      body: SingleChildScrollView( // Permite rolagem se o conteúdo for muito grande
-        child: Padding(
-          padding: const EdgeInsets.all(20.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: <Widget>[
-              // Imagem de Perfil
-              const CircleAvatar(
-                radius: 60,
-                backgroundImage: NetworkImage(
-                  'https://via.placeholder.com/150', // Imagem de placeholder
-                ),
-                backgroundColor: Colors.grey,
-              ),
-              const SizedBox(height: 20),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(20.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: <Widget>[
+            const CircleAvatar(
+              radius: 60,
+              backgroundImage: NetworkImage('https://via.placeholder.com/150'),
+              backgroundColor: Colors.grey,
+            ),
+            const SizedBox(height: 20),
 
-              // Nome do Usuário
-              const Text(
-                'João da Silva',
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
+            // Nome do usuário
+            Text(
+              name ?? 'Carregando...',
+              style: const TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 10),
+
+            // Informações
+            Card(
+              elevation: 4,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(15.0),
+                child: Column(
+                  children: <Widget>[
+                    ListTile(
+                      leading: const Icon(Icons.email, color: Colors.blue),
+                      title: Text(email ?? ''),
+                    ),
+                    const Divider(),
+                    ListTile(
+                      leading: const Icon(Icons.business, color: Colors.orange),
+                      title: Text(companyName ?? ''),
+                    ),
+                    const Divider(),
+                    ListTile(
+                      leading: const Icon(Icons.person_outline, color: Colors.teal),
+                      title: Text(profile ?? ''),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 10),
+            ),
+            const SizedBox(height: 20),
 
-              // Informações de Contato
-              Card(
-                margin: const EdgeInsets.symmetric(horizontal: 0),
-                elevation: 4,
+            ElevatedButton.icon(
+              onPressed: () {
+                Navigator.pushNamed(context, '/home');
+              },
+              icon: const Icon(Icons.arrow_back_ios_new_outlined),
+              label: const Text('Voltar na página'),
+              style: ElevatedButton.styleFrom(
+                minimumSize: const Size(double.infinity, 50),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Padding(
-                  padding: EdgeInsets.all(15.0),
-                  child: Column(
-                    children: <Widget>[
-                      ListTile(
-                        leading: Icon(Icons.email, color: Colors.blue),
-                        title: Text('joao.silva@example.com'),
-                      ),
-                      Divider(),
-                      ListTile(
-                        leading: Icon(Icons.phone, color: Colors.green),
-                        title: Text('+55 (11) 98765-4321'),
-                      ),
-                      Divider(),
-                      ListTile(
-                        leading: Icon(Icons.location_on, color: Colors.red),
-                        title: Text('São Paulo, Brasil'),
-                      ),
-                    ],
-                  ),
-                ),
               ),
-              const SizedBox(height: 20),
-
-              // Botão de Ação (Ex: Configurações)
-              ElevatedButton.icon(
-                onPressed: () {
-                        Navigator.pushNamed(context, '/home');
-                },
-                icon: const Icon(Icons.arrow_back_ios_new_outlined),
-                label: const Text('Voltar na pagina'),
-                style: ElevatedButton.styleFrom(
-                  minimumSize: const Size(double.infinity, 50), // Botão de largura total
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

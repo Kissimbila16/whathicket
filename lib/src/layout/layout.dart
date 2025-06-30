@@ -1,4 +1,38 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+    FlutterLocalNotificationsPlugin();
+
+Future<void> mostrarNotificacao() async {
+  final int idNotificacao = DateTime.now().millisecondsSinceEpoch.remainder(100000);
+
+  const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
+    'canal_id',
+    'Canal Nome',
+    importance: Importance.high,
+    priority: Priority.high,
+  );
+
+  const NotificationDetails notificationDetails =
+      NotificationDetails(android: androidDetails);
+
+  await flutterLocalNotificationsPlugin.show(
+    idNotificacao,
+    'Título da Notificação',
+    'Corpo da Notificação (ID: $idNotificacao)',
+    notificationDetails,
+  );
+}
+
+Future<void> logout(BuildContext context) async {
+  final prefs = await SharedPreferences.getInstance();
+  await prefs.clear();
+  if (context.mounted) {
+    Navigator.pushReplacementNamed(context, '/');
+  }
+}
 
 class LayoutPage extends StatelessWidget {
   const LayoutPage({super.key});
@@ -28,7 +62,7 @@ class LayoutPage extends StatelessWidget {
                     child: IconButton(
                       icon: const Icon(Icons.close, color: Colors.white),
                       onPressed: () {
-                        Navigator.pop(context); // Fecha o Drawer
+                        Navigator.pop(context);
                       },
                     ),
                   ),
@@ -39,7 +73,7 @@ class LayoutPage extends StatelessWidget {
               leading: const Icon(Icons.home),
               title: const Text('Home'),
               onTap: () {
-                Navigator.pop(context); // Fecha o Drawer antes de navegar
+                Navigator.pop(context);
                 Navigator.pushNamed(context, '/home');
               },
             ),
@@ -52,25 +86,36 @@ class LayoutPage extends StatelessWidget {
               },
             ),
             ListTile(
-              leading: const Icon(Icons.group),
-              title: const Text('Grupos'),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.pushNamed(context, '/group');
-              },
-            ),
-            ListTile(
               leading: const Icon(Icons.logout),
               title: const Text('Sair'),
               onTap: () {
-                Navigator.pop(context);
-                Navigator.pushNamed(context, '/');
+                logout(context);
               },
             ),
           ],
         ),
       ),
-      body: const Center(child: Text('Pagina inicial')),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            ElevatedButton(
+              onPressed: mostrarNotificacao,
+              child: const Text('Testar Notificação'),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton.icon(
+              onPressed: () => logout(context),
+              icon: const Icon(Icons.logout),
+              label: const Text('Logout'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
