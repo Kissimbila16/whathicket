@@ -8,7 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
     FlutterLocalNotificationsPlugin();
 
-Future<void> mostrarNotificacao(String corpo) async {
+Future<void> mostrarNotificacao(String corpo, String titulo) async { // Adicionei titulo
   final int idNotificacao = DateTime.now().millisecondsSinceEpoch.remainder(100000);
 
   const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
@@ -24,7 +24,7 @@ Future<void> mostrarNotificacao(String corpo) async {
 
   await flutterLocalNotificationsPlugin.show(
     idNotificacao,
-    'Nova mensagem recebida',
+    titulo, // Usando o título dinâmico
     corpo,
     notificationDetails,
   );
@@ -48,13 +48,14 @@ class LayoutPage extends StatefulWidget {
 class _LayoutPageState extends State<LayoutPage> {
   Timer? _mensagemTimer;
   int? userId;
-  String? ultimoIdMensagem;
-  String? _bearerToken; // Variável para armazenar o token
+  String? _bearerToken;
+  // Mapa para armazenar o último ID de mensagem por ID do ticket
+  Map<int, String> ultimoIdMensagemPorTicket = {};
 
   @override
   void initState() {
     super.initState();
-    _carregarTokenEIniciarVerificacao(); // Chamada inicial para carregar o token e iniciar o timer
+    _carregarTokenEIniciarVerificacao();
   }
 
   @override
@@ -66,62 +67,87 @@ class _LayoutPageState extends State<LayoutPage> {
   Future<void> _carregarTokenEIniciarVerificacao() async {
     final prefs = await SharedPreferences.getInstance();
     userId = prefs.getInt('userId');
-    _bearerToken = prefs.getString('token'); // Assumindo que o token é salvo como 'token'
+    _bearerToken = prefs.getString('token');
 
     if (userId != null && _bearerToken != null) {
+      // Faz uma verificação inicial e depois inicia o timer
+      await verificarMensagens(userId!, _bearerToken!);
       _mensagemTimer = Timer.periodic(const Duration(seconds: 5), (_) {
         verificarMensagens(userId!, _bearerToken!);
       });
     } else {
       debugPrint('Usuário ou token não encontrado. Não foi possível iniciar a verificação de mensagens.');
-      // Opcional: Redirecionar para a tela de login se o token não for encontrado
       if (mounted) {
         logout(context);
       }
     }
   }
 
-  Future<void> verificarMensagens(int userId, String token) async {
-    final url = Uri.parse('https://api.restbot.shop/messages/$userId?pageNumber=1');
-
-    try {
-      final response = await http.get(
-        url,
-        headers: {
-          'Authorization': 'Bearer $token', // Adicionando o cabeçalho de autorização
-          'Content-Type': 'application/json', // É uma boa prática incluir o Content-Type
-        },
-      );
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        final mensagens = data['messages'] ?? [];
-
-        if (mensagens.isNotEmpty) {
-          final primeira = mensagens[0];
-          final msgId = primeira['id'].toString();
-
-          // Mostra notificação apenas se for uma mensagem nova
-          if (msgId != ultimoIdMensagem) {
-            ultimoIdMensagem = msgId;
-            final texto = primeira['body'] ?? '[Sem conteúdo]';
-            await mostrarNotificacao(texto);
-          }
-        }
-      } else if (response.statusCode == 401) {
-        // Lida com erro de não autorizado (token expirado ou inválido)
-        debugPrint('Erro 401: Token inválido ou expirado. Realizando logout.');
-        if (mounted) {
-          logout(context);
-        }
-      } else {
-        debugPrint('Erro ao verificar mensagens: Status Code ${response.statusCode}');
-        debugPrint('Corpo da resposta: ${response.body}');
-      }
-    } catch (e) {
-      debugPrint('Erro ao verificar mensagens: $e');
-    }
+void mostrarErro(String msg) {
+  if (mounted) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(msg),
+        backgroundColor: Colors.red,
+      ),
+    );
   }
+}
+
+
+Future<void> verificarMensagens(int userId, String token) async {
+  final url = Uri.parse('https://api.restbot.shop/tickets/$userId'); 
+
+  try {
+    final response = await http.get(
+      url,
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+    );
+
+    debugPrint('Status: ${response.statusCode}');
+    debugPrint('Corpo da resposta: ${response.body}');
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      final List<dynamic> tickets = data['tickets'] ?? [];
+
+      for (var ticket in tickets) {
+        final int ticketId = ticket['id'];
+        final String currentLastMessage = ticket['lastMessage'] ?? '[Sem conteúdo]';
+        final String contactName = ticket['contact']['name'] ?? 'Contato Desconhecido';
+
+        final String? ultimaRegistrada = ultimoIdMensagemPorTicket[ticketId];
+
+        if (ultimaRegistrada == null || ultimaRegistrada != currentLastMessage) {
+          ultimoIdMensagemPorTicket[ticketId] = currentLastMessage;
+
+          debugPrint('Nova mensagem detectada no ticket $ticketId de $contactName');
+
+          await mostrarNotificacao(currentLastMessage, 'Nova mensagem de $contactName');
+        }
+      }
+
+    } else if (response.statusCode == 401) {
+      debugPrint('Erro 401: Token inválido ou expirado. Realizando logout.');
+      mostrarErro('Sessão expirada. Faça login novamente.');
+      if (mounted) {
+        logout(context);
+      }
+
+    } else {
+      debugPrint('Erro ao verificar tickets: Status ${response.statusCode}');
+      mostrarErro('Erro ao verificar mensagens: Status ${response.statusCode}');
+    }
+
+  } catch (e) {
+    debugPrint('Erro ao verificar tickets: $e');
+    mostrarErro('Erro inesperado ao verificar mensagens.');
+  }
+}
+
 
   @override
   Widget build(BuildContext context) {
@@ -179,44 +205,43 @@ class _LayoutPageState extends State<LayoutPage> {
           ],
         ),
       ),
-body: Center(
-  child: Column(
-    mainAxisAlignment: MainAxisAlignment.center,
-    children: [
-      ElevatedButton(
-        onPressed: () => mostrarNotificacao('Notificação manual'),
-        child: const Text('Testar Notificação'),
-      ),
-      const SizedBox(height: 16),
-      ElevatedButton(
-        onPressed: () {
-          if (userId != null && _bearerToken != null) {
-            verificarMensagens(userId!, _bearerToken!);
-          } else {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Usuário não logado ou token não carregado.'),
-                backgroundColor: Colors.orange,
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            ElevatedButton(
+              onPressed: () => mostrarNotificacao('Esta é uma notificação de teste.', 'Notificação Manual'),
+              child: const Text('Testar Notificação'),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: () {
+                if (userId != null && _bearerToken != null) {
+                  verificarMensagens(userId!, _bearerToken!);
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Usuário não logado ou token não carregado.'),
+                      backgroundColor: Colors.orange,
+                    ),
+                  );
+                }
+              },
+              child: const Text('Verificar Mensagens Agora'),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton.icon(
+              onPressed: () => logout(context),
+              icon: const Icon(Icons.logout),
+              label: const Text('Logout'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
               ),
-            );
-          }
-        },
-        child: const Text('Verificar Mensagem Agora'),
-      ),
-      const SizedBox(height: 16),
-      ElevatedButton.icon(
-        onPressed: () => logout(context),
-        icon: const Icon(Icons.logout),
-        label: const Text('Logout'),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.red,
-          foregroundColor: Colors.white,
+            ),
+          ],
         ),
       ),
-    ],
-  ),
-),
-
     );
   }
 }
