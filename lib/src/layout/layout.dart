@@ -39,22 +39,9 @@ Future<void> mostrarNotificacao(
   );
 }
 
-/// Envia uma mensagem de debug para log e como notificação (canal de debug)
-Future<void> debugNotify(String mensagem) async {
-  debugPrint(mensagem);
-  await mostrarNotificacao(
-    mensagem,
-    'Debug',
-    canalId: 'debug_channel',
-    canalNome: 'Mensagens de Debug',
-    importancia: Importance.low,
-  );
-}
-
 Future<void> logout(BuildContext context) async {
   final prefs = await SharedPreferences.getInstance();
   await prefs.clear();
-  await debugNotify('Dados do SharedPreferences limpos. Redirecionando para /.');
   if (context.mounted) {
     Navigator.pushReplacementNamed(context, '/');
   }
@@ -91,18 +78,12 @@ class _LayoutPageState extends State<LayoutPage> {
     userId = prefs.getInt('userId');
     _bearerToken = prefs.getString('token');
 
-    await debugNotify('LayoutPage - userId carregado: $userId');
-    await debugNotify('LayoutPage - token carregado: $_bearerToken');
-
     if (userId != null && _bearerToken != null) {
-      await debugNotify('Token e UserId carregados com sucesso! userId: $userId');
       await verificarMensagens(userId!, _bearerToken!);
       _mensagemTimer = Timer.periodic(const Duration(seconds: 5), (_) {
         verificarMensagens(userId!, _bearerToken!);
       });
     } else {
-      await debugNotify(
-          'Usuário ou token não encontrado. Não foi possível iniciar a verificação de mensagens.');
       if (mounted) {
         logout(context);
       }
@@ -121,10 +102,6 @@ class _LayoutPageState extends State<LayoutPage> {
         },
       );
 
-      await debugNotify(
-          'Resposta da API (Status Code): ${response.statusCode}');
-      await debugNotify('Resposta da API (Body): ${response.body}');
-
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
 
@@ -132,33 +109,20 @@ class _LayoutPageState extends State<LayoutPage> {
         final String contactName =
             data['contact']?['name'] ?? 'Contato Desconhecido';
         final int unreadMessages = data['unreadMessages'] ?? 0;
-
+debugPrint(data['contact']);
         if (lastMessage != ultimoLastMessage) {
           ultimoLastMessage = lastMessage;
 
           if (unreadMessages > 0) {
             await mostrarNotificacao(
                 lastMessage, 'Nova mensagem de $contactName');
-            await debugNotify(
-                'Notificação disparada: $lastMessage de $contactName');
-          } else {
-            await debugNotify(
-                'Nova última mensagem detectada mas sem mensagens não lidas: $lastMessage');
           }
-        } else {
-          await debugNotify(
-              'Última mensagem já foi notificada anteriormente: $lastMessage');
         }
       } else if (response.statusCode == 401) {
-        await debugNotify(
-            'Erro 401: Token inválido ou expirado. Realizando logout.');
         if (mounted) {
           logout(context);
         }
       } else {
-        await debugNotify(
-            'Erro ao verificar ticket: Status ${response.statusCode}');
-        // await debugNotify('Corpo da resposta: ${response.body}');
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -169,7 +133,6 @@ class _LayoutPageState extends State<LayoutPage> {
         }
       }
     } catch (e) {
-      await debugNotify('Erro na requisição para verificar ticket: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
