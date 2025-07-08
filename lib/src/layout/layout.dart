@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter/cupertino.dart';
+
 
 // Instância global para as notificações locais
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
@@ -42,13 +44,6 @@ Future<void> mostrarNotificacao(
 /// Envia uma mensagem de debug para log e como notificação (canal de debug)
 Future<void> debugNotify(String mensagem) async {
     debugPrint(mensagem);
-    await mostrarNotificacao(
-        mensagem,
-        'Debug',
-        canalId: 'debug_channel',
-        canalNome: 'Mensagens de Debug',
-        importancia: Importance.low,
-    );
 }
 
 Future<void> logout(BuildContext context) async {
@@ -166,6 +161,7 @@ class _LayoutPageState extends State<LayoutPage> {
                             backgroundColor: Colors.orange,
                         ),
                     );
+                    //  logout(context);
                 }
             }
         } catch (e) {
