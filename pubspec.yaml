@@ -14,6 +14,7 @@ dependencies:
   firebase_core: ^2.30.0 # Verifique a versão mais recente em pub.dev
   flutter_local_notifications: ^17.0.0
   shared_preferences: ^2.2.2
+  change_app_package_name: ^1.4.0
   http: ^0.13.6
 
 dev_dependencies:
@@ -26,4 +27,4 @@ dev_dependencies:
 flutter_launcher_icons:
   android: "launcher_icon" # Nome do ícone para Android
   ios: true # Gerar ícones para iOS
-  image_path: "assets/logo.png" # Crie esta pasta e coloque sua imagem aqui
+  image_path: "assets/images/logo.png" # Crie esta pasta e coloque sua imagem aqui

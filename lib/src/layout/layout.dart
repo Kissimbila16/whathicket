@@ -1,3 +1,5 @@
+// ignore_for_file: unnecessary_import
+
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
@@ -125,7 +127,7 @@ class _LayoutPageState extends State<LayoutPage> {
 
                 final String lastMessage = data['lastMessage'] ?? '[Sem mensagem]';
                 final String contactName =
-                    data['contact']?['name'] ?? 'Contato Desconhecido';
+                    data['contact']?['number'] ?? 'Contato Desconhecido';
                 final int unreadMessages = data['unreadMessages'] ?? 0;
 
                 if (lastMessage != ultimoLastMessage) {
@@ -133,7 +135,7 @@ class _LayoutPageState extends State<LayoutPage> {
 
                     if (unreadMessages > 0) {
                         await mostrarNotificacao(
-                            lastMessage, 'Nova mensagem de $contactName');
+                            lastMessage, 'Tem uma mensagem de $contactName na fila de espera, entre no whaticket');
                         await debugNotify(
                             'Notificação disparada: $lastMessage de $contactName');
                     } else {
