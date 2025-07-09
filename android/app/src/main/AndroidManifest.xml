@@ -4,7 +4,7 @@
     <application
         android:label="Whaticket"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher"
+        android:icon="@mipmap/logo"
         android:exported="true">
         <activity
             android:name=".MainActivity"

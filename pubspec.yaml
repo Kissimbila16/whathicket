@@ -25,6 +25,6 @@ dev_dependencies:
 
 # --- Adicione a seção flutter_launcher_icons aqui ---
 flutter_launcher_icons:
-  android: "launcher_icon" # Nome do ícone para Android
+  android: true # Nome do ícone para Android
   ios: true # Gerar ícones para iOS
   image_path: "assets/images/logo.png" # Crie esta pasta e coloque sua imagem aqui
