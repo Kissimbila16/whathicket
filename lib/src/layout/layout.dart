@@ -281,7 +281,7 @@ class _LayoutPageState extends State<LayoutPage> {
           children: [
             ElevatedButton(
               onPressed: testarListagem,
-              child: const Text('Listar contatos + mensagens'),
+              child: const Text('Verificar mensagens'),
             ),
             const SizedBox(height: 16),
             ElevatedButton.icon(
