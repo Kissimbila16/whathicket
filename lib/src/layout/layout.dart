@@ -20,7 +20,7 @@ Future<void> mostrarNotificacao(
   final int idNotificacao =
       DateTime.now().millisecondsSinceEpoch.remainder(100000);
 
-  final AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
+  final androidDetails = AndroidNotificationDetails(
     canalId,
     canalNome,
     importance: importancia,
@@ -28,8 +28,7 @@ Future<void> mostrarNotificacao(
     icon: '@mipmap/ic_launcher',
   );
 
-  final NotificationDetails notificationDetails =
-      NotificationDetails(android: androidDetails);
+  final notificationDetails = NotificationDetails(android: androidDetails);
 
   await flutterLocalNotificationsPlugin.show(
     idNotificacao,
@@ -39,14 +38,9 @@ Future<void> mostrarNotificacao(
   );
 }
 
-Future<void> debugNotify(String mensagem) async {
-  debugPrint(mensagem);
-}
-
 Future<void> logout(BuildContext context) async {
   final prefs = await SharedPreferences.getInstance();
   await prefs.clear();
-  await debugNotify('Dados do SharedPreferences limpos. Redirecionando para /.');
   if (context.mounted) {
     Navigator.pushReplacementNamed(context, '/');
   }
@@ -82,21 +76,60 @@ class _LayoutPageState extends State<LayoutPage> {
     _bearerToken = prefs.getString('token');
 
     if (userId != null && _bearerToken != null) {
-      await debugNotify('Token e UserId carregados com sucesso! userId: $userId');
       _mensagemTimer = Timer.periodic(const Duration(seconds: 30), (_) {
-        listarContatosComMensagens(userId!, _bearerToken!);
+        verificarNovasMensagens(userId!, _bearerToken!);
       });
     } else {
-      await debugNotify(
-          'Usuário ou token não encontrado. Não foi possível iniciar a verificação de mensagens.');
       if (mounted) {
         logout(context);
       }
     }
   }
 
-  /// LISTA os contatos do usuário logado com tickets.
-  Future<List<Map<String, dynamic>>> listarContatosComMensagens(int userId, String token) async {
+  Future<void> verificarNovasMensagens(int userId, String token) async {
+    final contatos = await listarContatosComMensagens(userId, token);
+
+    final prefs = await SharedPreferences.getInstance();
+    final notificadosPorTicket =
+        prefs.getStringMap('ultimoNotificadoPorTicket') ?? {};
+
+    for (var contato in contatos) {
+      if ((contato as Map).isNotEmpty) {
+        final ticketId = contato['tickets'][0]['id'].toString();
+        final mensagens = await pegarMensagens(int.parse(ticketId), token);
+            debugPrint('📋 msg: $mensagens');
+        if (mensagens.isEmpty) continue;
+
+        // Ordenar mensagens da mais antiga para a mais recente
+        mensagens.sort((a, b) {
+          final tsA = DateTime.tryParse(a['createdAt'] ?? '')?.millisecondsSinceEpoch ?? 0;
+          final tsB = DateTime.tryParse(b['createdAt'] ?? '')?.millisecondsSinceEpoch ?? 0;
+          return tsA.compareTo(tsB);
+        });
+
+        // Pega só a última mensagem
+        final ultimaMsg = mensagens.last;
+
+        final msgId = ultimaMsg['id'].toString();
+        final corpo = ultimaMsg['body'] ?? '';
+        final autor = contato['name'] ?? 'Desconhecido';
+        final ultimoNotificado = notificadosPorTicket[ticketId];
+
+        if (msgId != ultimoNotificado) {
+          await mostrarNotificacao(corpo, 'Nova mensagem de $autor');
+          notificadosPorTicket[ticketId] = msgId;
+        }
+      }
+    }
+
+    await prefs.setString(
+      'ultimoNotificadoPorTicket',
+      jsonEncode(notificadosPorTicket),
+    );
+  }
+
+  Future<List<Map<String, dynamic>>> listarContatosComMensagens(
+      int userId, String token) async {
     final url = Uri.parse('https://api.restbot.shop/contacts');
 
     try {
@@ -108,9 +141,6 @@ class _LayoutPageState extends State<LayoutPage> {
         },
       );
 
-      await debugNotify('Listar contatos - Status: ${response.statusCode}');
-      await debugNotify('Listar contatos - Body: ${response.body}');
-
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
 
@@ -118,22 +148,19 @@ class _LayoutPageState extends State<LayoutPage> {
           final List contacts = data['contacts'];
           return List<Map<String, dynamic>>.from(contacts);
         } else {
-          await debugNotify('Resposta inesperada: não contém chave contacts');
           return [];
         }
       } else {
-        await debugNotify('Erro ao listar contatos: ${response.body}');
         return [];
       }
     } catch (e) {
-      await debugNotify('Erro ao listar contatos: $e');
       return [];
     }
   }
 
-  /// PEGA as mensagens do ticket especificado.
-  Future<List<Map<String, dynamic>>> pegarMensagens(int userId, String token) async {
-    final url = Uri.parse('https://api.restbot.shop/messages/$userId');
+  Future<List<Map<String, dynamic>>> pegarMensagens(
+      int ticketId, String token) async {
+    final url = Uri.parse('https://api.restbot.shop/messages/$ticketId');
 
     try {
       final response = await http.get(
@@ -144,24 +171,17 @@ class _LayoutPageState extends State<LayoutPage> {
         },
       );
 
-      await debugNotify('Pegar mensagens - Status: ${response.statusCode}');
-      await debugNotify('Pegar mensagens - Body: ${response.body}');
-
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-
-        if (data is List) {
-          return List<Map<String, dynamic>>.from(data);
+        if (data is Map && data.containsKey('messages')) {
+          return List<Map<String, dynamic>>.from(data['messages']);
         } else {
-          await debugNotify('Resposta inesperada: não é uma lista');
           return [];
         }
       } else {
-        await debugNotify('Erro ao pegar mensagens: ${response.body}');
         return [];
       }
     } catch (e) {
-      await debugNotify('Erro ao pegar mensagens: $e');
       return [];
     }
   }
@@ -170,17 +190,26 @@ class _LayoutPageState extends State<LayoutPage> {
     if (userId == null || _bearerToken == null) return;
 
     final contatos = await listarContatosComMensagens(userId!, _bearerToken!);
-    debugPrint('📋 Contatos:');
+    print('📋 Contatos: $contatos');
     for (var contato in contatos) {
-      debugPrint('${contato['name']} (${contato['id']})');
+      debugPrint('${contato['name']} (${contato['number']})');
       if ((contato['tickets'] as List).isNotEmpty) {
-        final ticketId = contato['tickets'][0]['id'];
-        debugPrint('➡️ Ticket: $ticketId');
+        final ticketId = contato['id'];
 
-        final mensagens = await pegarMensagens(userId!, _bearerToken!);
-        for (var msg in mensagens) {
-          debugPrint('📨 ${msg['body']}');
-        }
+        final mensagens = await pegarMensagens(ticketId, _bearerToken!);
+        if (mensagens.isEmpty) continue;
+
+        // Ordenar e pegar só a última mensagem
+        mensagens.sort((a, b) {
+          final tsA = DateTime.tryParse(a['createdAt'] ?? '')?.millisecondsSinceEpoch ?? 0;
+          final tsB = DateTime.tryParse(b['createdAt'] ?? '')?.millisecondsSinceEpoch ?? 0;
+          return tsA.compareTo(tsB);
+        });
+
+        final ultimaMsg = mensagens.last;
+
+        debugPrint('📨 ${ultimaMsg['body']}');
+        // await mostrarNotificacao(ultimaMsg['body'], 'Nova mensagem de ${contato['name']}');
       }
     }
   }
@@ -191,7 +220,7 @@ class _LayoutPageState extends State<LayoutPage> {
       appBar: AppBar(
         title: const Text('Whaticket'),
         centerTitle: true,
-        backgroundColor: Colors.teal,
+        backgroundColor: Colors.blue,
         elevation: 4.0,
       ),
       drawer: Drawer(
@@ -229,6 +258,14 @@ class _LayoutPageState extends State<LayoutPage> {
               },
             ),
             ListTile(
+              leading: const Icon(Icons.person),
+              title: const Text('Perfil'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.pushNamed(context, '/perfil');
+              },
+            ),
+            ListTile(
               leading: const Icon(Icons.logout),
               title: const Text('Sair'),
               onTap: () {
@@ -260,5 +297,14 @@ class _LayoutPageState extends State<LayoutPage> {
         ),
       ),
     );
+  }
+}
+
+extension SharedPreferencesMap on SharedPreferences {
+  Map<String, String> getStringMap(String key) {
+    final jsonStr = getString(key);
+    if (jsonStr == null) return {};
+    final decoded = jsonDecode(jsonStr);
+    return Map<String, String>.from(decoded);
   }
 }
