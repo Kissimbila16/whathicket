@@ -1,3 +1,5 @@
+// ignore_for_file: unnecessary_import
+
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
@@ -18,7 +20,7 @@ Future<void> mostrarNotificacao(
   final int idNotificacao =
       DateTime.now().millisecondsSinceEpoch.remainder(100000);
 
-  final AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
+  final androidDetails = AndroidNotificationDetails(
     canalId,
     canalNome,
     importance: importancia,
@@ -26,8 +28,7 @@ Future<void> mostrarNotificacao(
     icon: '@mipmap/ic_launcher',
   );
 
-  final NotificationDetails notificationDetails =
-      NotificationDetails(android: androidDetails);
+  final notificationDetails = NotificationDetails(android: androidDetails);
 
   await flutterLocalNotificationsPlugin.show(
     idNotificacao,
@@ -57,10 +58,6 @@ class _LayoutPageState extends State<LayoutPage> {
   int? userId;
   String? _bearerToken;
 
-  String? ultimoLastMessage;
-  int groupMessageCount = 0;
-  int companyMessageCount = 0;
-
   @override
   void initState() {
     super.initState();
@@ -79,17 +76,61 @@ class _LayoutPageState extends State<LayoutPage> {
     _bearerToken = prefs.getString('token');
 
     if (userId != null && _bearerToken != null) {
-      await verificarMensagens(userId!, _bearerToken!);
-      _mensagemTimer = Timer.periodic(const Duration(seconds: 5), (_) {
-        verificarMensagens(userId!, _bearerToken!);
+      _mensagemTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+        verificarNovasMensagens(userId!, _bearerToken!);
       });
     } else {
-      if (mounted) logout(context);
+      if (mounted) {
+        logout(context);
+      }
     }
   }
 
-  Future<void> verificarMensagens(int userId, String token) async {
-    final url = Uri.parse('https://api.restbot.shop/tickets/$userId');
+  Future<void> verificarNovasMensagens(int userId, String token) async {
+    final contatos = await listarContatosComMensagens(userId, token);
+
+    final prefs = await SharedPreferences.getInstance();
+    final notificadosPorTicket =
+        prefs.getStringMap('ultimoNotificadoPorTicket') ?? {};
+
+    for (var contato in contatos) {
+      if ((contato as Map).isNotEmpty) {
+        final ticketId = contato['tickets'][0]['id'].toString();
+        final mensagens = await pegarMensagens(int.parse(ticketId), token);
+            debugPrint('📋 msg: $mensagens');
+        if (mensagens.isEmpty) continue;
+
+        // Ordenar mensagens da mais antiga para a mais recente
+        mensagens.sort((a, b) {
+          final tsA = DateTime.tryParse(a['createdAt'] ?? '')?.millisecondsSinceEpoch ?? 0;
+          final tsB = DateTime.tryParse(b['createdAt'] ?? '')?.millisecondsSinceEpoch ?? 0;
+          return tsA.compareTo(tsB);
+        });
+
+        // Pega só a última mensagem
+        final ultimaMsg = mensagens.last;
+
+        final msgId = ultimaMsg['id'].toString();
+        final corpo = ultimaMsg['body'] ?? '';
+        final autor = contato['name'] ?? 'Desconhecido';
+        final ultimoNotificado = notificadosPorTicket[ticketId];
+
+        if (msgId != ultimoNotificado) {
+          await mostrarNotificacao(corpo, 'Nova mensagem de $autor');
+          notificadosPorTicket[ticketId] = msgId;
+        }
+      }
+    }
+
+    await prefs.setString(
+      'ultimoNotificadoPorTicket',
+      jsonEncode(notificadosPorTicket),
+    );
+  }
+
+  Future<List<Map<String, dynamic>>> listarContatosComMensagens(
+      int userId, String token) async {
+    final url = Uri.parse('https://api.restbot.shop/contacts');
 
     try {
       final response = await http.get(
@@ -103,62 +144,72 @@ class _LayoutPageState extends State<LayoutPage> {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
 
-        final tickets = data['tickets'] as List<dynamic>;
-
-        for (final ticket in tickets) {
-          final String lastMessage = ticket['lastMessage'] ?? '[Sem mensagem]';
-          final String contactName =
-              ticket['contact']?['name'] ?? 'Contato Desconhecido';
-          final int unreadMessages = ticket['unreadMessages'] ?? 0;
-          final bool isGroup = ticket['isGroup'] ?? false;
-
-          final bool isCompany =
-              !RegExp(r'^\d+$').hasMatch(contactName.trim()) &&
-              contactName != 'Contato Desconhecido';
-
-          if (lastMessage != ultimoLastMessage) {
-            ultimoLastMessage = lastMessage;
-
-            if (unreadMessages > 0) {
-              String tituloNotificacao;
-
-              if (isGroup) {
-                tituloNotificacao = 'Nova mensagem de GRUPO: $contactName';
-              } else if (isCompany) {
-                tituloNotificacao = 'Nova mensagem de EMPRESA: $contactName';
-              } else {
-                tituloNotificacao = 'Nova mensagem de $contactName';
-              }
-
-              await mostrarNotificacao(lastMessage, tituloNotificacao);
-
-              setState(() {
-                if (isGroup) groupMessageCount++;
-                if (isCompany) companyMessageCount++;
-              });
-            }
-          }
+        if (data is Map && data.containsKey('contacts')) {
+          final List contacts = data['contacts'];
+          return List<Map<String, dynamic>>.from(contacts);
+        } else {
+          return [];
         }
-      } else if (response.statusCode == 401) {
-        if (mounted) logout(context);
       } else {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Erro ao buscar tickets: ${response.body}'),
-              backgroundColor: Colors.orange,
-            ),
-          );
-        }
+        return [];
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Erro de conexão ao verificar tickets: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
+      return [];
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> pegarMensagens(
+      int ticketId, String token) async {
+    final url = Uri.parse('https://api.restbot.shop/messages/$ticketId');
+
+    try {
+      final response = await http.get(
+        url,
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data is Map && data.containsKey('messages')) {
+          return List<Map<String, dynamic>>.from(data['messages']);
+        } else {
+          return [];
+        }
+      } else {
+        return [];
+      }
+    } catch (e) {
+      return [];
+    }
+  }
+
+  Future<void> testarListagem() async {
+    if (userId == null || _bearerToken == null) return;
+
+    final contatos = await listarContatosComMensagens(userId!, _bearerToken!);
+    print('📋 Contatos: $contatos');
+    for (var contato in contatos) {
+      debugPrint('${contato['name']} (${contato['number']})');
+      if ((contato['tickets'] as List).isNotEmpty) {
+        final ticketId = contato['id'];
+
+        final mensagens = await pegarMensagens(ticketId, _bearerToken!);
+        if (mensagens.isEmpty) continue;
+
+        // Ordenar e pegar só a última mensagem
+        mensagens.sort((a, b) {
+          final tsA = DateTime.tryParse(a['createdAt'] ?? '')?.millisecondsSinceEpoch ?? 0;
+          final tsB = DateTime.tryParse(b['createdAt'] ?? '')?.millisecondsSinceEpoch ?? 0;
+          return tsA.compareTo(tsB);
+        });
+
+        final ultimaMsg = mensagens.last;
+
+        debugPrint('📨 ${ultimaMsg['body']}');
+        // await mostrarNotificacao(ultimaMsg['body'], 'Nova mensagem de ${contato['name']}');
       }
     }
   }
@@ -167,27 +218,10 @@ class _LayoutPageState extends State<LayoutPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Home Page'),
-        actions: [
-          Row(
-            children: [
-              const Icon(Icons.group, color: Colors.white),
-              const SizedBox(width: 4),
-              Text(
-                '$groupMessageCount',
-                style: const TextStyle(color: Colors.white),
-              ),
-              const SizedBox(width: 12),
-              const Icon(Icons.business, color: Colors.white),
-              const SizedBox(width: 4),
-              Text(
-                '$companyMessageCount',
-                style: const TextStyle(color: Colors.white),
-              ),
-              const SizedBox(width: 12),
-            ],
-          )
-        ],
+        title: const Text('Whaticket'),
+        centerTitle: true,
+        backgroundColor: Colors.blue,
+        elevation: 4.0,
       ),
       drawer: Drawer(
         width: 200,
@@ -246,26 +280,8 @@ class _LayoutPageState extends State<LayoutPage> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             ElevatedButton(
-              onPressed: () => mostrarNotificacao(
-                  'Esta é uma notificação de teste.', 'Notificação Manual'),
-              child: const Text('Testar Notificação'),
-            ),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: () {
-                if (userId != null && _bearerToken != null) {
-                  verificarMensagens(userId!, _bearerToken!);
-                } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content:
-                          Text('Usuário não logado ou token não carregado.'),
-                      backgroundColor: Colors.orange,
-                    ),
-                  );
-                }
-              },
-              child: const Text('Verificar Mensagens Agora'),
+              onPressed: testarListagem,
+              child: const Text('Verificar mensagens'),
             ),
             const SizedBox(height: 16),
             ElevatedButton.icon(
@@ -281,5 +297,14 @@ class _LayoutPageState extends State<LayoutPage> {
         ),
       ),
     );
+  }
+}
+
+extension SharedPreferencesMap on SharedPreferences {
+  Map<String, String> getStringMap(String key) {
+    final jsonStr = getString(key);
+    if (jsonStr == null) return {};
+    final decoded = jsonDecode(jsonStr);
+    return Map<String, String>.from(decoded);
   }
 }

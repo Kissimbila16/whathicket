@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-
-// Importa suas páginas
 import 'src/login/login.dart';
 import 'src/home/home.dart';
 import 'src/layout/layout.dart';
