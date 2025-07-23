@@ -2,6 +2,13 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
+// Importe para verificar se está no ambiente web
+import 'package:flutter/foundation.dart' show kIsWeb;
+
+// Definindo a URL base da API como uma constante.
+// Se você configurar um proxy local para contornar o CORS no desenvolvimento web,
+// você mudaria esta URL para apontar para o seu proxy (ex: 'http://localhost:8080/api').
+const String _apiBaseUrl = 'https://api.restbot.shop';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -31,7 +38,7 @@ class LoginPageState extends State<LoginPage> {
 
   Future<void> _checkLoginStatus() async {
     final prefs = await SharedPreferences.getInstance();
-    final savedEmail = prefs.getString('userEmail'); // corrigido
+    final savedEmail = prefs.getString('userEmail');
     final loginTimestamp = prefs.getInt('loginTimestamp');
 
     if (savedEmail != null && loginTimestamp != null) {
@@ -57,7 +64,7 @@ class LoginPageState extends State<LoginPage> {
 
       try {
         final response = await http.post(
-          Uri.parse('https://api.restbot.shop/auth/login'),
+          Uri.parse('$_apiBaseUrl/auth/login'), // Usando a URL base configurável
           headers: {'Content-Type': 'application/json'},
           body: jsonEncode({'email': email, 'password': password}),
         );
@@ -88,16 +95,29 @@ class LoginPageState extends State<LoginPage> {
             Navigator.pushReplacementNamed(context, '/home');
           }
         } else {
+          // Mensagem de erro do servidor
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Erro: ${response.body}'), backgroundColor: Colors.red),
+              SnackBar(content: Text('Erro do servidor: ${response.statusCode} - ${response.body}'), backgroundColor: Colors.red),
             );
           }
         }
       } catch (e) {
+        // Tratamento de erro específico para ambiente web (CORS)
+        String errorMessage = 'Erro ao conectar: $e';
+        if (kIsWeb) {
+          // Se estiver no navegador e o erro for de rede/XMLHttpRequest,
+          // é muito provável que seja um problema de CORS.
+          if (e.toString().contains('XMLHttpRequest') || e.toString().contains('Failed to load network image')) {
+            errorMessage = 'Erro de conexão no navegador (CORS). Certifique-se de que o servidor da API permite requisições da sua origem web ou use um proxy.';
+          } else if (e.toString().contains('NetworkError')) {
+             errorMessage = 'Erro de rede no navegador. Isso pode ser um problema de CORS ou conectividade.';
+          }
+        }
+
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Erro ao conectar: $e'), backgroundColor: Colors.red),
+            SnackBar(content: Text(errorMessage), backgroundColor: Colors.red),
           );
         }
       } finally {
